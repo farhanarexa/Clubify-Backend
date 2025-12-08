@@ -8,6 +8,7 @@ const createEvent = async (db, req, res) => {
             title,
             description,
             eventDate,
+            date,  // Also accept 'date' from frontend
             location,
             isPaid,
             eventFee,
@@ -16,11 +17,15 @@ const createEvent = async (db, req, res) => {
 
         const eventsCollection = db.collection("events");
 
+        // Use the 'date' field if 'eventDate' is not provided (for compatibility with frontend)
+        const actualEventDate = eventDate || date || new Date();
+
         const newEvent = {
             clubId: new ObjectId(clubId),
             title,
             description,
-            eventDate: new Date(eventDate),
+            eventDate: new Date(actualEventDate),
+            date: new Date(actualEventDate),  // Also store as 'date' for consistency
             location,
             isPaid: Boolean(isPaid),
             eventFee: eventFee || 0,
