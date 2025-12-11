@@ -127,7 +127,7 @@ async function run() {
     app.delete('/events/:eventId', verifyToken, (req, res) => eventRoutes.deleteEvent(db, req, res));
 
     // Membership routes
-    app.post('/memberships', verifyToken, (req, res) => membershipRoutes.createMembership(db, req, res));
+    app.post('/memberships',  (req, res) => membershipRoutes.createMembership(db, req, res));
     app.get('/memberships/user/:email', verifyToken, (req, res) => membershipRoutes.getMembershipsByUser(db, req, res));
     app.get('/memberships/club/:clubId', verifyToken, (req, res) => membershipRoutes.getMembershipsByClub(db, req, res));
     app.patch('/memberships/:membershipId/status', verifyToken, (req, res) => membershipRoutes.updateMembershipStatus(db, req, res));
