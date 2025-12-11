@@ -42,29 +42,70 @@ const createEvent = async (db, req, res) => {
     }
 };
 
-// Get all events
+// Get all events with search and filter capabilities
 const getAllEvents = async (db, req, res) => {
     try {
         // Support for pagination and sorting
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const sortBy = req.query.sortBy || 'eventDate';
-        const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+
+        // Build query object
+        let query = {};
 
         // Support for filtering by club
-        const clubFilter = req.query.clubId ? { clubId: new ObjectId(req.query.clubId) } : {};
+        if (req.query.clubId) {
+            query.clubId = new ObjectId(req.query.clubId);
+        }
+
+        // Add search functionality
+        if (req.query.search) {
+            const searchRegex = new RegExp(req.query.search, 'i'); // Case insensitive
+            query.title = { $regex: searchRegex };
+        }
+
+        // Add category filter if needed (assuming events might have a category)
+        if (req.query.category) {
+            query.category = req.query.category;
+        }
+
+        // Add sorting functionality
+        let sort = { eventDate: 1 }; // Default to oldest first
+        if (req.query.sortBy) {
+            switch (req.query.sortBy) {
+                case 'newest':
+                    sort = { createdAt: -1 };
+                    break;
+                case 'oldest':
+                    sort = { createdAt: 1 };
+                    break;
+                case 'highestFee':
+                    sort = { eventFee: -1 };
+                    break;
+                case 'lowestFee':
+                    sort = { eventFee: 1 };
+                    break;
+                case 'eventDateNewest':
+                    sort = { eventDate: -1 };
+                    break;
+                case 'eventDateOldest':
+                    sort = { eventDate: 1 };
+                    break;
+                default:
+                    sort = { eventDate: 1 }; // Default sort by event date (oldest first)
+            }
+        }
 
         const eventsCollection = db.collection("events");
 
         const events = await eventsCollection
-            .find(clubFilter)
-            .sort({ [sortBy]: sortOrder })
+            .find(query)
+            .sort(sort)
             .skip((page - 1) * limit)
             .limit(limit)
             .toArray();
 
         // Get total count for pagination info
-        const total = await eventsCollection.countDocuments(clubFilter);
+        const total = await eventsCollection.countDocuments(query);
 
         res.send({
             events,
@@ -84,9 +125,36 @@ const getEventsByClub = async (db, req, res) => {
         const eventsCollection = db.collection("events");
         const { clubId } = req.params;
 
+        // Add sorting capabilities to club events
+        let sort = { eventDate: 1 }; // Default to oldest first
+        if (req.query.sortBy) {
+            switch (req.query.sortBy) {
+                case 'newest':
+                    sort = { createdAt: -1 };
+                    break;
+                case 'oldest':
+                    sort = { createdAt: 1 };
+                    break;
+                case 'highestFee':
+                    sort = { eventFee: -1 };
+                    break;
+                case 'lowestFee':
+                    sort = { eventFee: 1 };
+                    break;
+                case 'eventDateNewest':
+                    sort = { eventDate: -1 };
+                    break;
+                case 'eventDateOldest':
+                    sort = { eventDate: 1 };
+                    break;
+                default:
+                    sort = { eventDate: 1 }; // Default sort by event date (oldest first)
+            }
+        }
+
         const events = await eventsCollection
             .find({ clubId: new ObjectId(clubId) })
-            .sort({ eventDate: 1 })
+            .sort(sort)
             .toArray();
 
         res.send(events);

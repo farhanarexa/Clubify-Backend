@@ -34,7 +34,7 @@ const createClub = async (db, req, res) => {
     }
 };
 
-// Get all clubs
+// Get all clubs with search and filter capabilities
 const getAllClubs = async (db, req, res) => {
     try {
         const clubsCollection = db.collection("clubs");
@@ -42,13 +42,46 @@ const getAllClubs = async (db, req, res) => {
         // Check if admin to show all clubs (including pending)
         const isAdmin = req.query.admin === 'true';
 
+        // Build query object
         let query = {};
         if (!isAdmin) {
             // Only show approved clubs to regular users
             query = { status: 'approved' };
         }
 
-        const clubs = await clubsCollection.find(query).toArray();
+        // Add search functionality
+        if (req.query.search) {
+            const searchRegex = new RegExp(req.query.search, 'i'); // Case insensitive
+            query.clubName = { $regex: searchRegex };
+        }
+
+        // Add category filter
+        if (req.query.category) {
+            query.category = req.query.category;
+        }
+
+        // Add sorting functionality
+        let sort = { createdAt: -1 }; // Default to newest first
+        if (req.query.sortBy) {
+            switch (req.query.sortBy) {
+                case 'newest':
+                    sort = { createdAt: -1 };
+                    break;
+                case 'oldest':
+                    sort = { createdAt: 1 };
+                    break;
+                case 'highestFee':
+                    sort = { membershipFee: -1 };
+                    break;
+                case 'lowestFee':
+                    sort = { membershipFee: 1 };
+                    break;
+                default:
+                    sort = { createdAt: -1 };
+            }
+        }
+
+        const clubs = await clubsCollection.find(query).sort(sort).toArray();
         res.send(clubs);
     } catch (error) {
         console.error('Error getting clubs:', error);
@@ -67,7 +100,19 @@ const getClubsByStatus = async (db, req, res) => {
             return res.status(400).send({ error: 'Invalid status' });
         }
 
-        const clubs = await clubsCollection.find({ status }).toArray();
+        // Add search and category filter for status query
+        const query = { status };
+
+        if (req.query.search) {
+            const searchRegex = new RegExp(req.query.search, 'i');
+            query.clubName = { $regex: searchRegex };
+        }
+
+        if (req.query.category) {
+            query.category = req.query.category;
+        }
+
+        const clubs = await clubsCollection.find(query).toArray();
         res.send(clubs);
     } catch (error) {
         console.error('Error getting clubs by status:', error);
