@@ -42,11 +42,18 @@ const eventRoutes = require('./routes/events');
 const membershipRoutes = require('./routes/memberships');
 const eventRegistrationRoutes = require('./routes/eventRegistrations');
 const paymentRoutes = require('./routes/payments');
+const stripeRoutes = require('./routes/stripe');
 const { initDatabase, verifyToken, verifyAdmin, verifyClubManager, verifyMember } = require('./middleware/auth');
 
 //middleware
 app.use(cors());
 app.use(express.json());
+
+// Stripe webhook requires raw body
+app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
+    // This will be handled with the database context
+    stripeRoutes.handleWebhook(db, req, res);
+});
 
 function capitalize(str) {
     if (!str) return str;
@@ -147,6 +154,11 @@ async function run() {
     app.get('/payments', verifyAdmin, (req, res) => paymentRoutes.getAllPayments(db, req, res));
     app.patch('/payments/:paymentId/status', verifyAdmin, (req, res) => paymentRoutes.updatePaymentStatus(db, req, res));
     app.get('/payments/club/:clubId', verifyToken, (req, res) => paymentRoutes.getPaymentsByClub(db, req, res));
+
+    // Stripe payment intent routes
+    app.post('/stripe/create-event-payment-intent', verifyToken, (req, res) => stripeRoutes.createEventPaymentIntent(db, req, res));
+    app.post('/stripe/create-membership-payment-intent', verifyToken, (req, res) => stripeRoutes.createMembershipPaymentIntent(db, req, res));
+    app.get('/stripe/payment-intent/:paymentIntentId', verifyToken, (req, res) => stripeRoutes.getPaymentIntent(db, req, res));
 
   } catch (error) {
     console.error("Error setting up database collections:", error);
