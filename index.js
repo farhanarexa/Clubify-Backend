@@ -123,7 +123,7 @@ async function run() {
     app.get('/clubs/manager/:email', verifyToken, (req, res) => clubRoutes.getClubsByManager(db, req, res));
     app.patch('/clubs/:clubId/status', verifyAdmin, (req, res) => clubRoutes.updateClubStatus(db, req, res));
     app.patch('/clubs/:clubId', verifyToken, (req, res) => clubRoutes.updateClub(db, req, res));
-    app.delete('/clubs/:clubId', verifyAdmin, (req, res) => clubRoutes.deleteClub(db, req, res));
+    app.delete('/clubs/:clubId', verifyToken, (req, res) => clubRoutes.deleteClub(db, req, res));
 
     // Event routes
     app.post('/events', verifyToken, (req, res) => eventRoutes.createEvent(db, req, res));

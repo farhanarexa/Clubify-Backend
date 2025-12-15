@@ -189,11 +189,27 @@ const updateClub = async (db, req, res) => {
     }
 };
 
-// Delete a club (admin only)
+// Delete a club (admin only or club manager)
 const deleteClub = async (db, req, res) => {
     try {
         const clubsCollection = db.collection("clubs");
         const { clubId } = req.params;
+        const userEmail = req.user.email; // From the token verification
+
+        // Check if the user is the manager of this club or an admin
+        const club = await clubsCollection.findOne({ _id: new ObjectId(clubId) });
+
+        if (!club) {
+            return res.status(404).send({ error: 'Club not found' });
+        }
+
+        // Allow deletion if user is admin or club manager
+        const isAdmin = req.user.role === 'admin';
+        const isManager = club.managerEmail === userEmail;
+
+        if (!isAdmin && !isManager) {
+            return res.status(403).send({ error: 'Access denied. You are not authorized to delete this club.' });
+        }
 
         const result = await clubsCollection.deleteOne(
             { _id: new ObjectId(clubId) }
