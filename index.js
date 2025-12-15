@@ -47,7 +47,7 @@ const { initDatabase, verifyToken, verifyAdmin, verifyClubManager, verifyMember 
 
 //middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increase payload size limit
 
 // Stripe webhook requires raw body
 app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
@@ -115,6 +115,7 @@ async function run() {
     app.patch('/users/:userId/role', verifyAdmin, (req, res) => userRoutes.updateUserRole(db, req, res));  // This would be admin only
     app.get('/users', verifyAdmin, (req, res) => userRoutes.getAllUsers(db, req, res));
     app.get('/users/role/:role', verifyAdmin, (req, res) => userRoutes.getUsersByRole(db, req, res));
+    app.patch('/users/profile/:email', verifyToken, (req, res) => userRoutes.updateUserProfile(db, req, res));  // User can update their own profile
 
     // Club routes
     app.post('/clubs', verifyToken, (req, res) => clubRoutes.createClub(db, req, res));

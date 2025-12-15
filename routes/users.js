@@ -111,10 +111,56 @@ const getUsersByRole = async (db, req, res) => {
     }
 };
 
+// Update user profile (name and photoURL only)
+const updateUserProfile = async (db, req, res) => {
+    try {
+        const { email } = req.params;
+        const { name, photoURL } = req.body;
+
+        // Verify that the requesting user is updating their own profile
+        if (req.user.email !== email) {
+            return res.status(403).send({ error: 'Access denied. You can only update your own profile.' });
+        }
+
+        const usersCollection = db.collection("users");
+
+        // Prepare update data - only allow name and photoURL to be updated
+        const updateData = {};
+        if (name !== undefined) {
+            updateData.name = name;
+        }
+        if (photoURL !== undefined) {
+            updateData.photoURL = photoURL;
+        }
+
+        // Require at least one field to be updated
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).send({ error: 'At least one field (name or photoURL) must be provided' });
+        }
+
+        updateData.updatedAt = new Date();
+
+        const result = await usersCollection.updateOne(
+            { email: email },
+            { $set: updateData }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).send({ error: 'User not found' });
+        }
+
+        res.send({ message: 'Profile updated successfully' });
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+};
+
 module.exports = {
     createUser,
     getUserByEmail,
     updateUserRole,
     getAllUsers,
-    getUsersByRole
+    getUsersByRole,
+    updateUserProfile
 };
