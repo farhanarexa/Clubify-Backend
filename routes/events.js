@@ -12,7 +12,8 @@ const createEvent = async (db, req, res) => {
             location,
             isPaid,
             eventFee,
-            maxAttendees
+            maxAttendees,
+            imageUrl
         } = req.body;
 
         const eventsCollection = db.collection("events");
@@ -30,6 +31,7 @@ const createEvent = async (db, req, res) => {
             isPaid: Boolean(isPaid),
             eventFee: eventFee || 0,
             maxAttendees: maxAttendees || null,
+            imageUrl: imageUrl || null,
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -188,7 +190,23 @@ const updateEvent = async (db, req, res) => {
     try {
         const eventsCollection = db.collection("events");
         const { eventId } = req.params;
-        const updateData = { ...req.body, updatedAt: new Date() };
+
+        // Extract only the fields we want to allow updates for
+        const allowedFields = [
+            'title', 'description', 'eventDate', 'date', 'location',
+            'isPaid', 'eventFee', 'maxAttendees', 'imageUrl'
+        ];
+
+        // Filter the request body to only include allowed fields
+        const updateData = {};
+        for (const field of allowedFields) {
+            if (req.body.hasOwnProperty(field)) {
+                updateData[field] = req.body[field];
+            }
+        }
+
+        // Add updatedAt timestamp
+        updateData.updatedAt = new Date();
 
         // Convert date if provided
         if (updateData.eventDate) {
